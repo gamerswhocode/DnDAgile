@@ -1,0 +1,4 @@
+sceneSetups:
+- path: C:/Users/Oscar/Documents/Unity/BeatemUp/New Unity Project/Assets/Prototype.unity
+  isLoaded: 1
+  isActive: 1
