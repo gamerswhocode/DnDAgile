@@ -15,12 +15,20 @@ public class PlayerController : MonoBehaviour {
     //TODO : Fix camera with multiple players at once
     //TODO : universal controls (or at least work with generic work controller)
 
+    public Attack specialAttack = new Attack(new Vector3(10f,10f),
+        new Vector3(2f,2f,2f), new Vector3(), 3f
+        );
+
+    public Attack royalFlush = new Attack(new Vector3(0.3f, 0.5f),
+        new Vector3(1.5f, 1.5f, 1f), new Vector3(), 3f
+        );
 
     public BuffManager _buffManager;
 
     private Coroutine _buffingCoroutine;
     private Coroutine _damageCoroutine;
     private Coroutine _invulnerableCoroutine;
+    private Coroutine _castingCoroutine;
 
     public bool _currentlyInvulnerable = false;
     public float _invulnerabilityFrames = 0.3f;
@@ -82,10 +90,10 @@ public class PlayerController : MonoBehaviour {
 
     void Update()
     {
-        Debug.Log("Currently Invulnerable : "+_currentlyInvulnerable);
-
         if (_playerStatus != Helper.PlayerStatus.TakingDamage)
         {
+            //MeteorCreationRoutine(specialAttack);
+            RoyalFlashRoutine(royalFlush);
             ValidateKeyInputs();
             HandlePlayerStats();
         }
@@ -239,13 +247,12 @@ public class PlayerController : MonoBehaviour {
             if (Input.GetButtonDown("Fire3"))
             {
                 _playerStatus = Helper.PlayerStatus.ActivatingBuff;
-                AbilityTwo();
+                AbilityOne();
             }
 
             if (Input.GetButtonDown("Fire2"))
             {
-                _playerStatus = Helper.PlayerStatus.ActivatingBuff;
-                AbilityTwo();
+                AbilityOne();
             }
         }
     }
@@ -256,14 +263,81 @@ public class PlayerController : MonoBehaviour {
         _buffingCoroutine = StartCoroutine(ActivatingAbility("Speed"));
     }
 
+    private GameObject CreateSpecialObject(Vector3 size)
+    {
+        GameObject Hit = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Hit.name = "PlayerAttack";
+        Hit.transform.localScale = size;
+        var rb = Hit.AddComponent<Rigidbody>();
+        Physics.IgnoreCollision(Hit.GetComponent<Collider>(), this.gameObject.GetComponent<Collider>());
+        return Hit;
+    }
+
+    private void AttackMeteor(Attack pAttack)
+    {
+        _playerStatus = Helper.PlayerStatus.CastingSpell;
+        _castingCoroutine = StartCoroutine(CastingMeteor(pAttack));
+        
+        
+    }
+
     private void AbilityOne()
     {
-        _buffingCoroutine = StartCoroutine(ActivatingAbility("Range"));
+        AttackMeteor(specialAttack);
     }
 
     public bool IsGrounded()
     {
         return Physics.Raycast(transform.position, -Vector3.up, distToGround + 0.001f);
+    }
+
+    private float _lastMeteorGenerated;
+    private float _meteorInterval = 0.27f;
+
+    private bool CanCastMeteor()
+    {
+        return Time.time > _lastMeteorGenerated + _meteorInterval;
+    }
+
+    private void MeteorCreationRoutine(Attack pAttack)
+    {
+        if (_playerStatus == Helper.PlayerStatus.CastingSpell && CanCastMeteor())
+        {
+            var shot = CreateSpecialObject(pAttack.attackSize);
+            shot.GetComponent<Rigidbody>().AddForce(isCharacterFlipped() ? new Vector3(-10f, -15f, 0f) :
+                new Vector3(10f, -15f, 0f), ForceMode.VelocityChange);
+            shot.transform.position = GameObject.FindGameObjectWithTag("Player").transform.position +
+                (isCharacterFlipped() ? new Vector3(pAttack.attackOffest.x * -1f, pAttack.attackOffest.y,
+                pAttack.attackOffest.z) : pAttack.attackOffest);
+            Destroy(shot, 3f);
+            _lastMeteorGenerated = Time.time;
+        }
+    }
+
+    private void RoyalFlashRoutine(Attack pAttack)
+    {
+        if (_playerStatus == Helper.PlayerStatus.CastingSpell && CanCastMeteor())
+        {
+            var shot = CreateSpecialObject(pAttack.attackSize);
+            shot.GetComponent<Rigidbody>().AddForce(isCharacterFlipped() ? new Vector3(-60f, 0f, 0f) :
+                new Vector3(60f, 0f, 0f), ForceMode.VelocityChange);
+            shot.GetComponent<Rigidbody>().constraints = RigidbodyConstraints.FreezePositionY;
+            shot.transform.position = this.gameObject.transform.position +
+                (isCharacterFlipped() ? new Vector3(pAttack.attackOffest.x * -1f, pAttack.attackOffest.y,
+                pAttack.attackOffest.z) : pAttack.attackOffest);
+            Destroy(shot, 3f);
+            _lastMeteorGenerated = Time.time;
+        }
+    }
+
+    private IEnumerator CastingMeteor(Attack pAttack)
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(_abilityActivationRate);
+            _playerStatus = Helper.PlayerStatus.Neutral;
+            StopCoroutine(_castingCoroutine);
+        }
     }
 
     private IEnumerator ActivatingAbility(string ability)
