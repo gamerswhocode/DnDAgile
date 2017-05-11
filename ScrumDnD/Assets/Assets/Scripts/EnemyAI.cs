@@ -9,14 +9,30 @@ public class EnemyAI : MonoBehaviour
 
     private float lastAttack;
     private Coroutine _attackCoroutine;
+    private GameObject _playerTarget;
 
     public float attackInterval;
 
+
+    void Start()
+    {
+        _playerTarget = GameObject.FindGameObjectWithTag("Player");
+    }
 
     // Update is called once per frame
     void Update()
     {
 
+        if (inRange)
+            ProcessAttack();
+        else
+            MoveToPlayer();
+
+
+    }
+
+    private void ProcessAttack()
+    {
         if (Time.time > lastAttack + attackInterval)
         {
             //attack logic
@@ -31,7 +47,38 @@ public class EnemyAI : MonoBehaviour
             lastAttack = Time.time;
 
         }
+    }
 
+    public float attackRange = 2.0f;
+    public bool inRange = false;
+
+    void OnTriggerEnter(Collider other)
+    {
+        Debug.Log("Trigger Collider Enter");
+        if (other.gameObject.tag == "Player")
+        {
+            inRange = true;
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        Debug.Log("Trigger Collider Exit");
+        if (other.gameObject.tag == "Player")
+        {
+            inRange = false;
+        }
+    }
+
+    private void MoveToPlayer()
+    {
+        transform.LookAt(_playerTarget.transform.position);
+        transform.Rotate(new Vector3(0, -90f, 0), Space.Self);
+
+        if (Vector3.Distance(transform.position, _playerTarget.transform.position) > attackRange)
+        {
+            transform.Translate(new Vector3(2f * Time.deltaTime, 0, 0));
+        }
     }
 
     private IEnumerator AttackRoutine(GameObject attack, float timer)

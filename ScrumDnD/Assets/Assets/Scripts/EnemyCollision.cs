@@ -23,7 +23,9 @@ namespace UnityStandardAssets.Utility
 
         void OnCollisionEnter(Collision collision)
         {
-            if (collision.gameObject.name.Equals("PlayerAttack") || collision.gameObject.tag.Equals("Player"))
+            if (collision.gameObject.name.Equals("PlayerAttack") || 
+                //DIVE KICK TEMP IMPLEMENTATION
+                collision.gameObject.tag.Equals("Player"))
             {
                 _currentHealth -= 20;
                 _enemyHealthGUI.maxValue = _maxHealth;

@@ -27,7 +27,7 @@ public class GameController : MonoBehaviour {
     private Texture _textureOverlay;
 
     // Use this for initialization
-    void Start () {
+    void Awake() {
         _gameStatus = GameStatus.Playing;
         _players.Add(Instantiate(player[0]));
 	}
